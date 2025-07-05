@@ -26,6 +26,7 @@ class DataRecord(db.Model):
     file = db.relationship('XLSBFile', backref=db.backref('records', lazy=True))
 
 def init_db():
+    """Create database and upload folder if they do not exist."""
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])
     db.create_all()
@@ -60,10 +61,38 @@ def upload():
 
 @app.route('/dashboard')
 def dashboard():
-    records = DataRecord.query.all()
-    rows = ['<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>'.format(r.file.original_name, r.table, r.key, r.value) for r in records]
-    table = '<table border="1"><tr><th>File</th><th>Table</th><th>Key</th><th>Value</th></tr>{}</table>'.format(''.join(rows))
-    return render_template_string('<h1>Dashboard</h1>' + table)
+    """Display parsed data with optional filtering by table or file."""
+    table_filter = request.args.get('table')
+    file_filter = request.args.get('file')
+
+    query = DataRecord.query
+    if table_filter:
+        query = query.filter_by(table=table_filter)
+    if file_filter:
+        query = query.filter_by(file_id=file_filter)
+    records = query.all()
+
+    rows = [
+        '<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>'.format(
+            r.file.original_name, r.table, r.key, r.value)
+        for r in records
+    ]
+
+    html_table = (
+        '<table border="1">'
+        '<tr><th>File</th><th>Table</th><th>Key</th><th>Value</th></tr>{}'
+        '</table>'
+    ).format(''.join(rows))
+
+    form = (
+        '<form method="get">'
+        'Filter table: <input name="table" value="{0}"> '
+        'File id: <input name="file" value="{1}"> '
+        '<input type="submit" value="Filter">'
+        '</form>'
+    ).format(table_filter or '', file_filter or '')
+
+    return render_template_string('<h1>Dashboard</h1>' + form + html_table)
 
 if __name__ == '__main__':
     init_db()

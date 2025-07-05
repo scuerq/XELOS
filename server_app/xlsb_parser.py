@@ -16,11 +16,27 @@ class XLSBParser:
         return df.iloc[min_row-1:max_row, min_col-1:max_col]
 
     def parse_id(self):
+        """Parse identification information from the 'Identif' sheet."""
         tables = {}
         try:
-            id_df = self._read_range('Identif', 'C7:D21')
-            id_df.columns = ['Key', 'Value']
-            tables['ID'] = id_df
+            ranges = [
+                ('C7:D21'),
+                ('M19:O19'),
+                ('M22:O22'),
+                ('G85:M85'),
+                ('C86:E86'),
+            ]
+            frames = []
+            for r in ranges:
+                df = self._read_range('Identif', r)
+                if df.shape[1] < 2:
+                    continue
+                df = df.iloc[:, :2]
+                frames.append(df)
+            if frames:
+                id_df = pd.concat(frames, ignore_index=True)
+                id_df.columns = ['Key', 'Value']
+                tables['ID'] = id_df
         except Exception:
             pass
         return tables
@@ -31,6 +47,9 @@ class XLSBParser:
         synth = self.parse_synth()
         if not synth.empty:
             data['SYNTH'] = synth
+        loc = self.parse_locatif()
+        if not loc.empty:
+            data['LOCATIF'] = loc
         return data
     def get_fille_ids(self):
         try:
@@ -52,4 +71,32 @@ class XLSBParser:
                     data.append({'Id2': fid, 'Key': k, 'Value': v})
             except Exception:
                 continue
+        return pd.DataFrame(data)
+
+    def parse_locatif(self):
+        """Parse locatif data from the 'LoyersEtCharges' sheet."""
+        ids = self.get_fille_ids()
+        if not ids:
+            return pd.DataFrame()
+
+        try:
+            df = pd.read_excel(
+                self.path,
+                sheet_name='LoyersEtCharges',
+                engine='pyxlsb',
+                header=14,
+                usecols='C:T',
+                nrows=41,
+            )
+        except Exception:
+            return pd.DataFrame()
+
+        df = df.dropna(how='all')
+        data = []
+        for _, row in df.iterrows():
+            row_id = str(row.iloc[0])
+            for fid in ids:
+                if str(row_id) in str(fid):
+                    for col in df.columns[1:]:
+                        data.append({'Id2': fid, 'Key': col, 'Value': row[col]})
         return pd.DataFrame(data)

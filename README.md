@@ -10,7 +10,7 @@ Run the application with:
 python -m server_app
 ```
 
-Upload `.xlsb` files through the web form to parse basic identification data and
-display it in a simple dashboard. The parser is incomplete but shows how the VBA
-logic could be migrated to Python.
+Upload `.xlsb` files through the web form to parse identification, synthesis and
+locatif data. Once uploaded, visit `/dashboard` to view the records. The page
+accepts optional `table` and `file` parameters to filter the displayed rows.
 
