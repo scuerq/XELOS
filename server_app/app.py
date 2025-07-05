@@ -11,6 +11,7 @@ app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB
 db = SQLAlchemy(app)
 
 class XLSBFile(db.Model):
+    __tablename__ = 'XLSB_file'
     id = db.Column(db.Integer, primary_key=True)
     path = db.Column(db.String, unique=True, nullable=False)
     original_name = db.Column(db.String, nullable=False)
