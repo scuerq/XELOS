@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Upload XLSB Files</title>
+  <style>
+    body{font-family:Arial, sans-serif;margin:40px;}
+    form{margin-bottom:20px;}
+  </style>
+</head>
+<body>
+  <h1>Upload XLSB Files</h1>
+  <form method="post" enctype="multipart/form-data">
+    <input type="file" name="files" multiple>
+    <input type="submit" value="Upload">
+  </form>
+  <p><a href="{{ url_for('dashboard') }}">Dashboard</a> | <a href="{{ url_for('list_files') }}">Manage Files</a></p>
+</body>
+</html>

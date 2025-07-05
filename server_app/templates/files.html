@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Manage Files</title>
+  <style>
+    body{font-family:Arial, sans-serif;margin:40px;}
+    table{border-collapse:collapse;width:100%;}
+    th,td{border:1px solid #ccc;padding:4px;text-align:left;}
+  </style>
+</head>
+<body>
+  <h1>Uploaded Files</h1>
+  <table>
+    <tr><th>ID</th><th>Name</th><th>Actions</th></tr>
+    {% for f in files %}
+    <tr>
+      <td>{{ f.id }}</td>
+      <td>{{ f.original_name }}</td>
+      <td><a href="{{ url_for('delete_file', file_id=f.id) }}" onclick="return confirm('Delete file?');">Delete</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p><a href="{{ url_for('upload') }}">Upload</a> | <a href="{{ url_for('dashboard') }}">Dashboard</a></p>
+</body>
+</html>
