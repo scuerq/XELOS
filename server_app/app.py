@@ -11,6 +11,7 @@ app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB
 db = SQLAlchemy(app)
 
 class XLSBFile(db.Model):
+    __tablename__ = 'XLSB_file'
     id = db.Column(db.Integer, primary_key=True)
     path = db.Column(db.String, unique=True, nullable=False)
     original_name = db.Column(db.String, nullable=False)
@@ -39,9 +40,13 @@ def upload():
             filename = f.filename
             save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             f.save(save_path)
-            xlsb = XLSBFile(path=save_path, original_name=filename)
-            db.session.add(xlsb)
-            db.session.commit()
+            existing = XLSBFile.query.filter_by(path=save_path).first()
+            if existing is None:
+                xlsb = XLSBFile(path=save_path, original_name=filename)
+                db.session.add(xlsb)
+                db.session.commit()
+            else:
+                xlsb = existing
             parser = XLSBParser(save_path)
             for table_name, df in parser.parse_all().items():
                 for _, row in df.iterrows():
