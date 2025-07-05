@@ -10,11 +10,32 @@ Run the application with:
 python -m server_app
 ```
 
-Upload `.xlsb` files through the web form to parse identification, synthesis,
-locatif, PRP and financing data. Once uploaded, visit `/dashboard` to view the
-records. The page accepts optional `table`, `file` and `id2` parameters to
-filter the displayed rows. A list of uploaded files is available at `/files`,
-where you can also delete unwanted uploads.
+<<<<<<< HEAD
+Upload `.xlsb` files through the web form to parse identification data and four analysis tables that mirror the original workbook sheets:
+
+* `SYNTHESE`
+* `ANALYSE_PRP`
+* `ANALYSE_FINANCEMENT`
+* `ANALYSE_LOYERS`
+
+Once uploaded, visit `/dashboard` to view these records. The page accepts optional `table`, `file` and `id2` parameters to filter the displayed rows. The dashboard groups rows by table name for clarity. A list of uploaded files is available at `/files`, where you can also delete unwanted uploads.
+
+The interface is modern and responsive, built with Bootstrap 5 for a clean and user-friendly experience.
+=======
+Upload `.xlsb` files through the web form to parse identification data along
+with four analysis tables that mirror the original workbook sheets:
+
+* `SYNTHESE`
+* `ANALYSE_PRP`
+* `ANALYSE_FINANCEMENT`
+* `ANALYSE_LOYERS`
+
+Once uploaded, visit `/dashboard` to view these records. The page accepts
+optional `table`, `file` and `id2` parameters to filter the displayed rows. A
+list of uploaded files is available at `/files`, where you can also delete
+unwanted uploads. The dashboard groups rows by table name so you can quickly
+review the different analyses.
+>>>>>>> origin/7lqfiy-codex/convertir-fichier-xlsm-en-application-serveur
 
 The interface now uses simple HTML templates located in `server_app/templates`
 to provide a cleaner layout for the upload page, dashboard and file manager.

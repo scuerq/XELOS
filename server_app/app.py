@@ -11,7 +11,10 @@ app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB
 db = SQLAlchemy(app)
 
 class XLSBFile(db.Model):
+<<<<<<< HEAD
     __tablename__ = 'XLSB_file'
+=======
+>>>>>>> origin/7lqfiy-codex/convertir-fichier-xlsm-en-application-serveur
     id = db.Column(db.Integer, primary_key=True)
     path = db.Column(db.String, unique=True, nullable=False)
     original_name = db.Column(db.String, nullable=False)
@@ -38,8 +41,11 @@ def upload():
         uploaded = request.files.getlist('files')
         for f in uploaded:
             filename = f.filename
+<<<<<<< HEAD
             if not filename:
                 continue  # Ignore les fichiers sans nom pour éviter IsADirectoryError
+=======
+>>>>>>> origin/7lqfiy-codex/convertir-fichier-xlsm-en-application-serveur
             save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             f.save(save_path)
             xlsb = XLSBFile(path=save_path, original_name=filename)
@@ -58,7 +64,7 @@ def upload():
 
 @app.route('/dashboard')
 def dashboard():
-    """Display parsed data with optional filtering by table or file."""
+    """Display parsed data with optional filtering by table or file, groupées par nom de table."""
     table_filter = request.args.get('table')
     file_filter = request.args.get('file')
     id2_filter = request.args.get('id2')
@@ -70,21 +76,30 @@ def dashboard():
         query = query.filter_by(file_id=file_filter)
     if id2_filter:
         query = query.filter_by(id2=id2_filter)
-    records = query.all()
+    records = query.order_by(DataRecord.table).all()
 
-    rows = [
-        '<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>'.format(
-            r.file.original_name, r.table, r.id2 or '', r.key, r.value)
-        for r in records
-    ]
+    tables = {}
+    for r in records:
+        tables.setdefault(r.table, []).append(r)
 
-    html_table = (
-        '<table border="1">'
-        '<tr><th>File</th><th>Table</th><th>Id2</th><th>Key</th><th>Value</th></tr>{}'
-        '</table>'
-    ).format(''.join(rows))
+    parts = []
+    for table_name, rows in grouped.items():
+        row_html = ''.join(
+            '<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>'.format(
+                r.file.original_name, r.id2 or '', r.key, r.value) for r in rows
+        )
+        parts.append(
+            '<h2>{}</h2>'.format(table_name) +
+            '<table border="1">'
+            '<tr><th>File</th><th>Id2</th><th>Key</th><th>Value</th></tr>' +
+            row_html +
+            '</table>'
+        )
 
-    return render_template('dashboard.html', table=html_table)
+    html_tables = '\n'.join(parts)
+
+    return render_template('dashboard.html', tables=html_tables)
+>>>>>>> origin/7lqfiy-codex/convertir-fichier-xlsm-en-application-serveur
 
 @app.route('/files')
 def list_files():

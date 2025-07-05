@@ -57,17 +57,18 @@ class XLSBParser:
         data.update(self.parse_id())
         synth = self.parse_synth()
         if not synth.empty:
-            data['SYNTH'] = synth
+            data['SYNTHESE'] = synth
         loc = self.parse_locatif()
         if not loc.empty:
-            data['LOCATIF'] = loc
+            data['ANALYSE_LOYERS'] = loc
         prp = self.parse_prp()
         if not prp.empty:
-            data['PRP'] = prp
+            data['ANALYSE_PRP'] = prp
         finan = self.parse_financement()
         if not finan.empty:
-            data['FINANCEMENT'] = finan
+            data['ANALYSE_FINANCEMENT'] = finan
         return data
+
     def get_fille_ids(self):
         try:
             df = pd.read_excel(self.path, sheet_name='Identif', engine='pyxlsb', header=None)
