@@ -11,6 +11,7 @@ app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB
 db = SQLAlchemy(app)
 
 class XLSBFile(db.Model):
+    __tablename__ = 'XLSB_file'
     id = db.Column(db.Integer, primary_key=True)
     path = db.Column(db.String, unique=True, nullable=False)
     original_name = db.Column(db.String, nullable=False)
@@ -37,6 +38,8 @@ def upload():
         uploaded = request.files.getlist('files')
         for f in uploaded:
             filename = f.filename
+            if not filename:
+                continue  # Ignore les fichiers sans nom pour éviter IsADirectoryError
             save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             f.save(save_path)
             xlsb = XLSBFile(path=save_path, original_name=filename)
