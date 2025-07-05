@@ -13,6 +13,8 @@ class XLSBParser:
         # This is simplified: we read full sheet and slice with pandas' iloc.
         from openpyxl.utils import range_boundaries
         min_col, min_row, max_col, max_row = range_boundaries(cell_range)
+        print("parse_synth columns:", df.columns)
+        print(df.head())
         return df.iloc[min_row-1:max_row, min_col-1:max_col]
 
     def _offset_range(self, cell_range, col_offset=0, row_offset=0):
@@ -52,12 +54,72 @@ class XLSBParser:
             pass
         return tables
 
+    def compute_synthese(self, df):
+        import numpy as np
+        results = []
+        if 'SOCIETE' not in df.columns:
+            return pd.DataFrame()  # Sécurité : pas de colonne SOCIETE
+        for societe, group in df.groupby('SOCIETE'):
+            nb_operations = group['Id'].nunique() if 'Id' in group else np.nan
+            nb_lgt = group['Equivalent logements'].sum() if 'Equivalent logements' in group else np.nan
+            shab = group['Nbre de M² SHab'].sum() if 'Nbre de M² SHab' in group else np.nan
+            prp = group['Total'].sum() if 'Total' in group else np.nan
+            prp_shab = prp / shab if shab else np.nan
+            prp_logt = prp / nb_lgt if nb_lgt else np.nan
+            loyer_moyen = group['Montant'].sum() / nb_lgt / 12 if nb_lgt and 'Montant' in group else np.nan
+            taux_sub = group['Subventions'].sum() / prp if prp and 'Subventions' in group else np.nan
+            trlb = (group['Taux de rentabilité locative brute immédiat'] * group['Total']).sum() / prp if prp and 'Taux de rentabilité locative brute immédiat' in group and 'Total' in group else np.nan
+            ebe = (group['EBE / Loyers potentiels Cumulés'] * group['Montant']).sum() / group['Montant'].sum() if 'EBE / Loyers potentiels Cumulés' in group and 'Montant' in group and group['Montant'].sum() else np.nan
+            dette = (group['Service de la Dette / Loyers potentiels Cumulés'] * group['Montant']).sum() / group['Montant'].sum() if 'Service de la Dette / Loyers potentiels Cumulés' in group and 'Montant' in group and group['Montant'].sum() else np.nan
+            autofi = (group["Taux d'Autofinancement"] * group['Montant']).sum() / group['Montant'].sum() if "Taux d'Autofinancement" in group and 'Montant' in group and group['Montant'].sum() else np.nan
+            results.append({
+                'SOCIETE': societe,
+                '_NB_OPERATIONS': nb_operations,
+                '_NB_LGT': nb_lgt,
+                '_SHAB': shab,
+                '_PRP': prp,
+                '_PRP_SHAB': prp_shab,
+                '_PRP_LOGT': prp_logt,
+                '_LOYER_MOYEN_MENSUEL': loyer_moyen,
+                '_TAUX_SUB': taux_sub,
+                '_TRLB': trlb,
+                '_EBE': ebe,
+                '_DETTE': dette,
+                '_AUTOFI': autofi,
+            })
+        # Total général
+        total = {
+            'SOCIETE': 'Total général',
+            '_NB_OPERATIONS': df['Id'].nunique() if 'Id' in df else np.nan,
+            '_NB_LGT': df['Equivalent logements'].sum() if 'Equivalent logements' in df else np.nan,
+            '_SHAB': df['Nbre de M² SHab'].sum() if 'Nbre de M² SHab' in df else np.nan,
+            '_PRP': df['Total'].sum() if 'Total' in df else np.nan,
+            '_PRP_SHAB': df['Total'].sum() / df['Nbre de M² SHab'].sum() if 'Total' in df and 'Nbre de M² SHab' in df and df['Nbre de M² SHab'].sum() else np.nan,
+            '_PRP_LOGT': df['Total'].sum() / df['Equivalent logements'].sum() if 'Total' in df and 'Equivalent logements' in df and df['Equivalent logements'].sum() else np.nan,
+            '_LOYER_MOYEN_MENSUEL': df['Montant'].sum() / df['Equivalent logements'].sum() / 12 if 'Montant' in df and 'Equivalent logements' in df and df['Equivalent logements'].sum() else np.nan,
+            '_TAUX_SUB': df['Subventions'].sum() / df['Total'].sum() if 'Subventions' in df and 'Total' in df and df['Total'].sum() else np.nan,
+            '_TRLB': (df['Taux de rentabilité locative brute immédiat'] * df['Total']).sum() / df['Total'].sum() if 'Taux de rentabilité locative brute immédiat' in df and 'Total' in df and df['Total'].sum() else np.nan,
+            '_EBE': (df['EBE / Loyers potentiels Cumulés'] * df['Montant']).sum() / df['Montant'].sum() if 'EBE / Loyers potentiels Cumulés' in df and 'Montant' in df and df['Montant'].sum() else np.nan,
+            '_DETTE': (df['Service de la Dette / Loyers potentiels Cumulés'] * df['Montant']).sum() / df['Montant'].sum() if 'Service de la Dette / Loyers potentiels Cumulés' in df and 'Montant' in df and df['Montant'].sum() else np.nan,
+            '_AUTOFI': (df["Taux d'Autofinancement"] * df['Montant']).sum() / df['Montant'].sum() if "Taux d'Autofinancement" in df and 'Montant' in df and df['Montant'].sum() else np.nan,
+        }
+        results.append(total)
+        return pd.DataFrame(results)
+
     def parse_all(self):
+        print("parse_all: called")
         data = defaultdict(lambda: pd.DataFrame(columns=['Key', 'Value']))
         data.update(self.parse_id())
         synth = self.parse_synth()
+        
+        print("parse_all: synth type:", type(synth), "shape:", getattr(synth, 'shape', None))
+        print("parse_all: synth columns:", getattr(synth, 'columns', None))
+        print("parse_all: synth head:\n", getattr(synth, 'head', lambda: None)())
+
         if not synth.empty:
-            data['SYNTHESE'] = synth
+            # On suppose que synth est un DataFrame avec les colonnes nécessaires
+            data['SYNTHESE'] = self.compute_synthese(synth)
+            print("parse_all: SYNTHESE shape:", getattr(data['SYNTHESE'], 'shape', None))
         loc = self.parse_locatif()
         if not loc.empty:
             data['ANALYSE_LOYERS'] = loc
@@ -67,6 +129,9 @@ class XLSBParser:
         finan = self.parse_financement()
         if not finan.empty:
             data['ANALYSE_FINANCEMENT'] = finan
+        print("parse_all: keys:", list(data.keys()))
+        for k, v in data.items():
+            print(f"parse_all: {k} type={type(v)}, shape={getattr(v, 'shape', None)}")
         return data
 
     def get_fille_ids(self):
@@ -78,18 +143,34 @@ class XLSBParser:
         except Exception:
             return []
     def parse_synth(self):
+        print("parse_synth: called")
+        # DEBUG: Affiche la structure brute de la feuille synthèse
+        try:
+            df_raw = self._read_range('Fiche_Synthse', 'A1:T20')
+            print("parse_synth: feuille brute A1:T20")
+            print(df_raw)
+        except Exception as e:
+            print("parse_synth: erreur lecture brute:", e)
         data = []
         ids = self.get_fille_ids()
+        print("parse_synth: ids =", ids)
         for idx, fid in enumerate(ids):
             try:
+                print(f"parse_synth: reading for fid={fid}, idx={idx}")
                 df = self._read_range('Fiche_Synthse', f'F18:F28')
+                print("parse_synth: df loaded")
                 df.columns = ['Key']
                 values = self._read_range('Fiche_Synthse', f'F18:F28').iloc[:, idx]
                 for k, v in zip(df['Key'], values):
                     data.append({'Id2': fid, 'Key': k, 'Value': v})
-            except Exception:
+            except Exception as e:
+                print(f"parse_synth: exception for fid={fid}, idx={idx}:", e)
                 continue
+            print("parse_synth: output columns:", df.columns)
+            print("parse_synth: output head:\n", df.head())
+        print("parse_synth: returning DataFrame of shape", pd.DataFrame(data).shape)
         return pd.DataFrame(data)
+
 
     def parse_locatif(self):
         """Parse locatif data from the 'LoyersEtCharges' sheet."""

@@ -11,10 +11,7 @@ app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB
 db = SQLAlchemy(app)
 
 class XLSBFile(db.Model):
-<<<<<<< HEAD
     __tablename__ = 'XLSB_file'
-=======
->>>>>>> origin/7lqfiy-codex/convertir-fichier-xlsm-en-application-serveur
     id = db.Column(db.Integer, primary_key=True)
     path = db.Column(db.String, unique=True, nullable=False)
     original_name = db.Column(db.String, nullable=False)
@@ -41,16 +38,14 @@ def upload():
         uploaded = request.files.getlist('files')
         for f in uploaded:
             filename = f.filename
-<<<<<<< HEAD
             if not filename:
                 continue  # Ignore les fichiers sans nom pour éviter IsADirectoryError
-=======
->>>>>>> origin/7lqfiy-codex/convertir-fichier-xlsm-en-application-serveur
             save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             f.save(save_path)
             xlsb = XLSBFile(path=save_path, original_name=filename)
             db.session.add(xlsb)
             db.session.commit()
+            print("UPLOAD: appel parser.parse_all() sur", save_path)
             parser = XLSBParser(save_path)
             for table_name, df in parser.parse_all().items():
                 for _, row in df.iterrows():
@@ -78,28 +73,16 @@ def dashboard():
         query = query.filter_by(id2=id2_filter)
     records = query.order_by(DataRecord.table).all()
 
-    tables = {}
+    # Sections attendues
+    section_names = ["SYNTHESE", "ANALYSE_PRP", "ANALYSE_FINANCEMENT", "ANALYSE_LOYERS"]
+    tables = {name: [] for name in section_names}
     for r in records:
-        tables.setdefault(r.table, []).append(r)
-
-    parts = []
-    for table_name, rows in grouped.items():
-        row_html = ''.join(
-            '<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>'.format(
-                r.file.original_name, r.id2 or '', r.key, r.value) for r in rows
-        )
-        parts.append(
-            '<h2>{}</h2>'.format(table_name) +
-            '<table border="1">'
-            '<tr><th>File</th><th>Id2</th><th>Key</th><th>Value</th></tr>' +
-            row_html +
-            '</table>'
-        )
-
-    html_tables = '\n'.join(parts)
-
-    return render_template('dashboard.html', tables=html_tables)
->>>>>>> origin/7lqfiy-codex/convertir-fichier-xlsm-en-application-serveur
+        if r.table in tables:
+            tables[r.table].append(r)
+        else:
+            # Ajoute les tables non prévues à la fin
+            tables.setdefault(r.table, []).append(r)
+    return render_template('dashboard.html', tables=tables, section_names=section_names)
 
 @app.route('/files')
 def list_files():
